@@ -1,0 +1,13 @@
+node_modules/
+.runs/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.jsonl
+*.log
+client-grant.json
+budget.local.json
+runtime/
