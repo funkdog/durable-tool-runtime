@@ -1,0 +1,30 @@
+{
+  "name": "durable-tool-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Reference implementation for durable agent tool execution, recovery, and side-effect control",
+  "repository": { "type": "git", "url": "https://github.com/funkdog/durable-tool-runtime.git" },
+  "type": "module",
+  "engines": { "node": ">=24.16.0" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --test-concurrency=1 tests/*.test.ts",
+    "demo": "node scripts/demo.ts",
+    "serve": "node scripts/serve.ts",
+    "agent:transport": "node scripts/agent-transport.ts",
+    "agent:acceptance": "node scripts/agent-acceptance.ts",
+    "agent:cold": "node scripts/cold-start.ts",
+    "test:native": "node --test --test-concurrency=1 tests/native/*.test.ts",
+    "check:public": "node scripts/check-public.mjs",
+    "check": "npm run typecheck && npm test && npm run check:public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "typescript": "5.9.3"
+  }
+}
