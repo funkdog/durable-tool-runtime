@@ -19,7 +19,7 @@ This implementation persists the accepted operation, queries business evidence, 
 Requires Git and **Node.js 24.16.0 or later**, with built-in SQLite **3.51.3 or later**. The program checks SQLite at startup. Core process tests target POSIX systems; Windows is not supported.
 
 ```sh
-git clone https://github.com/funkdog/durable-tool-runtime.git
+git clone --branch baseline/v0.1 https://github.com/funkdog/durable-tool-runtime.git
 cd durable-tool-runtime
 npm ci --ignore-scripts --include=dev
 npm run check
@@ -27,6 +27,8 @@ npm run demo
 ```
 
 No API key, model subscription, or installed Codex is needed for these commands. Tests use real local HTTP/MCP servers, SQLite databases and child processes, not a live model.
+
+The command selects the initial reviewable baseline explicitly, so it also works before [the baseline PR](https://github.com/funkdog/durable-tool-runtime/pull/1) is merged into `main`.
 
 The demo starts at stock 10, reserves 3 once, kills a worker after the backend commit, reconciles the original operation, rejects stale authority, and releases the reservation once after cancellation. It also exercises a late write, duplicate event delivery and a backend without reconciliation capability.
 

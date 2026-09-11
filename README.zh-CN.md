@@ -9,7 +9,7 @@
 需要 Git、Node.js ≥24.16.0，内置 SQLite ≥3.51.3。进程控制面面向 POSIX；不支持 Windows。
 
 ```sh
-git clone https://github.com/funkdog/durable-tool-runtime.git
+git clone --branch baseline/v0.1 https://github.com/funkdog/durable-tool-runtime.git
 cd durable-tool-runtime
 npm ci --ignore-scripts --include=dev
 npm run check
