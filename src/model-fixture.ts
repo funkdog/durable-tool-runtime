@@ -11,8 +11,8 @@ export async function modelFixture(input: ReservationInput, token: string, expec
     if (req.method !== 'POST' || !req.url?.endsWith('/responses')) { json(res, {}, 404); return; }
     if (!sameSecret(req.headers.authorization ?? '', `Bearer ${token}`)) { json(res, {}, 401); return; }
     const request = await body(req, 512_000) as any; requests++;
-    toolShape = { requestKeys: Object.keys(request), inputTypes: request.input?.map((i: any) => ({type:i.type,role:i.role})) };
     if (requests > 20) { json(res, { error: 'fixture_request_limit' }, 429); return; }
+    toolShape = { requestKeys: Object.keys(request), inputTypes: request.input?.map((i: any) => ({type:i.type,role:i.role})) };
     const declared = [...(request.tools ?? []), ...(request.input ?? []).filter((i: any) => i.type === 'additional_tools').flatMap((i: any) => i.tools ?? [])];
     // Namespace wrappers are routing identities, not disposable grouping metadata.
     const tools = declared.flatMap((t: any) => t.tools
@@ -26,7 +26,10 @@ export async function modelFixture(input: ReservationInput, token: string, expec
     const parse = (value: unknown): any => {
       try {
         if (Array.isArray(value)) return value.some(i => i.text) ? value.filter(i => i.text).map(i => parse(i.text)).filter(i => i !== null).at(-1) : value;
-        const obj = typeof value === 'string' ? JSON.parse(value) : value;
+        // The native direct-MCP path decorates JSON with timing metadata.
+        // Recognize only the observed envelope, never extract arbitrary prose as evidence.
+        const text = typeof value === 'string' ? value.replace(/^Wall time: \d+(?:\.\d+)? seconds\r?\nOutput:\r?\n/, '') : value;
+        const obj = typeof text === 'string' ? JSON.parse(text) : text;
         if ((obj as any)?.structuredContent) return (obj as any).structuredContent;
         if ((obj as any)?.content) return parse((obj as any).content);
         return obj;
