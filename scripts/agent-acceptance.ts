@@ -13,7 +13,7 @@ import { businessRequest } from '../src/worker.ts';
 
 const [scenario, policyPath] = process.argv.slice(2);
 const cases = ['normal','agent_restart','session_resume','worker_restart','combined_restart','lost_response','authorization','stale_epoch','cancel','unknown','consumed'];
-if (!cases.includes(scenario) || !policyPath) throw new Error('Usage: npm run agent:acceptance -- <case> <budget.json>; see docs/real-agent.md');
+if (!cases.includes(scenario) || !policyPath) throw new Error('Usage: npm run agent:acceptance -- <case> <budget.json>; see docs/agent-integration.md');
 if (process.env.POC_ALLOW_LIVE !== '1' || !process.env.POC_OPENAI_API_KEY) throw new Error('Live execution requires POC_ALLOW_LIVE=1 and dedicated POC_OPENAI_API_KEY; no existing login tokens are read');
 const budget = new BudgetLedger(JSON.parse(readFileSync(policyPath, 'utf8')));
 const pricingDate = Date.parse(budget.policy.pricingCheckedAt);

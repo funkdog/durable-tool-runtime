@@ -26,4 +26,4 @@ The native test now propagates its cancellation signal to the harness; fault wai
 
 ## Verification
 
-The routing and response-envelope regressions have completed RED/GREEN. The four native fault windows must be rerun to confirm end-to-end protocol completion; their result is recorded in [publication provenance](../../publication.md). They remain simulated-model evidence, not real-agent acceptance. Both failed native batches are retained locally; no raw transcripts are published.
+The routing and response-envelope regressions completed RED/GREEN. Candidate `e9dd1b0` then passed all four native fault windows, with one reservation effect per case and no remaining owned processes. Actual descriptors confirmed the `mcp__governance` namespace, and the fixture recognized the returned timing envelope. The complete result is recorded in [publication provenance](../../publication.md). These remain simulated-model observations, not real-agent acceptance. Both failed native batches are retained locally; no raw transcripts are published.

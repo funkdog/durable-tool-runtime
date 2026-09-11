@@ -32,7 +32,7 @@ npm run agent:cold -- after_commit
 
 These commands do not call an external model. The mock provider label defaults to `fixture-model`; `POC_MODEL` may override that label for your runtime. The launcher checks an isolated filesystem permission profile before model execution. An incompatible CLI should fail the probe, not silently expand permissions.
 
-The predecessor used Codex 0.153.4 on macOS. Native compatibility is version- and OS-dependent; the default core CI does not certify native behavior on every platform. The current task renderer uses Chinese task instructions with language-neutral JSON fields.
+The public candidate was validated with Codex 0.153.4 on macOS; see [publication provenance](publication.md) for the exact revision and results. Native compatibility is version- and OS-dependent; the default core CI does not certify native behavior on every platform. The current task renderer uses Chinese task instructions with language-neutral JSON fields.
 
 ## Optional live API acceptance
 
