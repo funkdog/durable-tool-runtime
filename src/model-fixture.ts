@@ -4,7 +4,9 @@ import type { ReservationInput } from './types.ts';
 
 // Deliberately simulated Responses producer. NEVER used to claim real-model acceptance.
 export async function modelFixture(input: ReservationInput, token: string, expected = 'reserved', initialTool: 'submit' | 'get' = 'submit') {
-  let requests = 0; const toolNames = new Set<string>(); let toolShape: unknown = null; let lastOutput: unknown;
+  let requests = 0; const toolNames = new Set<string>();
+  const toolRefs = new Map<string, { name: string; namespace?: string }>();
+  let toolShape: unknown = null; let lastOutput: unknown;
   const endpoint = await listen(async (req, res) => {
     if (req.method !== 'POST' || !req.url?.endsWith('/responses')) { json(res, {}, 404); return; }
     if (!sameSecret(req.headers.authorization ?? '', `Bearer ${token}`)) { json(res, {}, 401); return; }
@@ -12,8 +14,13 @@ export async function modelFixture(input: ReservationInput, token: string, expec
     toolShape = { requestKeys: Object.keys(request), inputTypes: request.input?.map((i: any) => ({type:i.type,role:i.role})) };
     if (requests > 20) { json(res, { error: 'fixture_request_limit' }, 429); return; }
     const declared = [...(request.tools ?? []), ...(request.input ?? []).filter((i: any) => i.type === 'additional_tools').flatMap((i: any) => i.tools ?? [])];
-    const tools = declared.flatMap((t: any) => t.tools ?? [t]);
-    for (const t of tools) if (t.name) toolNames.add(t.name);
+    // Namespace wrappers are routing identities, not disposable grouping metadata.
+    const tools = declared.flatMap((t: any) => t.tools
+      ? t.tools.map((child: any) => ({ ...child, namespace: t.name })) : [t]);
+    for (const t of tools) if (t.name) {
+      toolNames.add(t.name); toolRefs.set(t.name, { name: t.name, ...(t.namespace ? { namespace: t.namespace } : {}) });
+    }
+    toolShape = { ...(toolShape as object), tools: tools.map((t: any) => ({ type: t.type, name: t.name, namespace: t.namespace })) };
     const outputs = (request.input ?? []).filter((i: any) => ['function_call_output', 'custom_tool_call_output'].includes(i.type));
     lastOutput = outputs.at(-1)?.output;
     const parse = (value: unknown): any => {
@@ -37,7 +44,7 @@ export async function modelFixture(input: ReservationInput, token: string, expec
       : codeMode ? { id: 'ct_' + randomUUID(), type: 'custom_tool_call', call_id: 'call_' + randomUUID(), name: 'exec', namespace: 'functions',
         input: name ? `text(await tools.${name}(${JSON.stringify(query ? { intentRef: input.intentRef } : input)}));`
           : 'text(ALL_TOOLS.filter(t=>t.name.includes("governance")).map(t=>({name:t.name})));' }
-      : { id: 'fc_' + randomUUID(), type: 'function_call', call_id: 'call_' + randomUUID(), name,
+      : { id: 'fc_' + randomUUID(), type: 'function_call', call_id: 'call_' + randomUUID(), ...toolRefs.get(name!),
         arguments: JSON.stringify(query ? { intentRef: input.intentRef } : input), status: 'completed' };
     const id = 'resp_' + randomUUID(); let seq = 0;
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store' });

@@ -25,6 +25,10 @@ export async function runColdScenario(scenario:ColdScenario,policy?:ModelBudget,
   const dirtyWorktree=Boolean(execFileSync('git',['status','--porcelain'],{cwd:root,encoding:'utf8'}).trim());
   const credential=randomBytes(32).toString('base64url');const counter=new PersistentRequestBudget(h.store,'cold-episode',policy?.maxRequests??12);
   const ensureActive=()=>{if(signal?.aborted)throw new Error('EXPERIMENT_ABORTED');};
+  const ensureTaskActive=()=>{
+    ensureActive();const task=runs.tasks()[0];
+    if(task?.state==='BLOCKED')throw new Error(`SCHEDULE_BLOCKED: ${task.blocked_reason??runs.run(task.current_run_id)?.verdict_json??'No verdict'}`);
+  };
   const start=(barrier?:string,runnerBarrier?:string)=>{
     ensureActive();const child=spawn(process.execPath,[fileURLToPath(new URL('./process.ts',import.meta.url)),'scheduler',h.dir],{
       stdio:['ignore','pipe','pipe'],env:{PATH:process.env.PATH,LANG:'en_US.UTF-8',POC_MODEL_PROXY_TOKEN:credential,
@@ -34,7 +38,7 @@ export async function runColdScenario(scenario:ColdScenario,policy?:ModelBudget,
   };
   const stop=async(child:ReturnType<typeof spawn>)=>{if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');await until(()=>child.exitCode!==null||child.signalCode!==null);};
   const witness=async(role:string,phase:string,pid?:number)=>{
-    const file=await until(()=>{ensureActive();return readdirSync(h.dir).find(f=>f.startsWith(`${role}-${phase}-`)&&(!pid||f===`${role}-${phase}-${pid}.json`));},Boolean,150_000);
+    const file=await until(()=>{ensureTaskActive();return readdirSync(h.dir).find(f=>f.startsWith(`${role}-${phase}-`)&&(!pid||f===`${role}-${phase}-${pid}.json`));},Boolean,150_000);
     const item=JSON.parse(readFileSync(join(h.dir,file!),'utf8'));witnesses.push(item);return item;
   };
   try{
@@ -47,7 +51,7 @@ export async function runColdScenario(scenario:ColdScenario,policy?:ModelBudget,
     if(scenario==='after_commit')h.inventory.armFault('after_commit_before_response',h.core.catalog.implementation.intentKey(f.task.tenant_id,f.input.intentRef),'hold');
     const first=start(scenario==='after_commit'?undefined:scenario,scenario==='after_spawn'?'after_agent_spawn':undefined);
     if(scenario==='after_commit'){
-      await until(()=>{ensureActive();if(first.child.exitCode!==null)throw new Error(first.errors());return h.inventory.fault('after_commit_before_response')?.hits===1;},Boolean,150_000);
+      await until(()=>{ensureTaskActive();if(first.child.exitCode!==null)throw new Error(first.errors());return h.inventory.fault('after_commit_before_response')?.hits===1;},Boolean,150_000);
       witnesses.push({phase:'after_commit',at:Date.now(),operations:h.store.snapshot().operations,inventory:h.inventory.snapshot()});
       await stop(first.child);stopOwnedRunner(runs.run(firstRunId)!,h.dir);await h.kill(worker,'SIGKILL');await h.process('worker');h.inventory.releaseFault('after_commit_before_response');
     }else{
