@@ -6,6 +6,8 @@ A small MIT-licensed reference implementation for durable agent tool execution, 
 
 [中文说明](README.zh-CN.md) · [Architecture](docs/architecture.md) · [Contracts](docs/contracts.md) · [Walkthrough](docs/walkthrough.md) · [Experiments](docs/experiments.md)
 
+**[Illustrated project introduction (中文 · HTML)](docs/project-introduction.zh-CN.html)** — the design, architecture, recovery case and evidence boundaries in one self-contained reading edition. Download the HTML and open it in a browser; the GitHub file view shows source, not a hosted page. Diagrams are embedded and need no Mermaid renderer or external assets.
+
 > Experimental, single-host software. Not a production workflow engine, a universal exactly-once layer, or an endorsement by an agent-runtime vendor.
 
 ## The failure this project explores
