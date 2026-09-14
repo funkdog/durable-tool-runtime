@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>让 Agent 的工具调用真正可恢复 · Durable Tool Runtime</title>
+<style>
+:root{--paper:#fbfaf6;--ink:#19343b;--body:#344b52;--muted:#63777c;--line:#d8e2df;--teal:#126b63;--teal-soft:#eaf3ef;--amber:#9b4b27;--amber-soft:#fbefe5;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:30px}body{margin:0;background:var(--paper);color:var(--body);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:18px;line-height:1.92}
+a{color:var(--teal);text-underline-offset:4px;text-decoration-thickness:1px;overflow-wrap:anywhere}a:hover{color:#064d45}a:focus-visible,summary:focus-visible{outline:3px solid #8db9ae;outline-offset:4px}
+.shell{max-width:1152px;margin:auto;padding:56px 32px 70px;display:grid;grid-template-columns:156px minmax(0,1fr);gap:48px}.rail{align-self:start;position:sticky;top:32px;font-size:13px;line-height:1.6}.rail-brand{color:var(--ink);font-weight:750;letter-spacing:2px;font-size:14px;padding:0 0 22px;border-bottom:1px solid var(--line)}.rail-label{margin:25px 0 12px;color:var(--muted);font-size:11px;letter-spacing:2px}.rail a{display:block;color:var(--muted);text-decoration:none;margin:0 0 15px}.rail a:hover{color:var(--teal)}.rail .num{display:inline-block;font-family:var(--mono);font-size:11px;margin-right:10px;color:var(--teal)}.rail-foot{font-size:11px;color:var(--muted);margin-top:32px;border-top:1px solid var(--line);padding-top:16px}
+main{min-width:0}.prose{max-width:720px}.eyebrow{font-size:12px;letter-spacing:2.3px;color:var(--teal);font-weight:700;margin:0 0 20px}.hero h1{font-family:Georgia,"Songti SC","Noto Serif CJK SC",serif;font-size:clamp(35px,4.4vw,55px);line-height:1.24;letter-spacing:-1.1px;font-weight:750;color:var(--ink);margin:0 0 20px}.deck{font-size:21px;line-height:1.7;max-width:690px;color:#496369;margin:0 0 24px}.meta{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12px;color:var(--muted);padding-bottom:28px;border-bottom:1px solid var(--line)}
+.abstract{font-size:17px;line-height:1.85;margin:28px 0 0;max-width:700px}.abstract strong{color:var(--ink)}section{margin-top:64px;scroll-margin-top:30px}.section-no{font-family:var(--mono);font-size:12px;color:var(--teal);letter-spacing:1px;display:block;margin-bottom:9px}h2{color:var(--ink);font-family:Georgia,"Songti SC",serif;font-size:31px;line-height:1.4;letter-spacing:-.35px;margin:0 0 24px}h3{color:var(--ink);font-size:21px;line-height:1.55;margin:32px 0 12px}p{margin:0 0 20px}strong{font-weight:700;color:var(--ink)}ul{padding-left:1.2em;margin:12px 0 22px}li{margin:7px 0}code{font-family:var(--mono);font-size:.83em;background:#eaf0ed;border-radius:3px;padding:2px 5px;overflow-wrap:anywhere}pre{background:#18373d;color:#ecf5ef;padding:23px 25px;border-radius:6px;overflow:auto;font-size:13px;line-height:1.8;margin:22px 0}pre code{padding:0;background:none;color:inherit;font-size:inherit;overflow-wrap:normal}
+.pullquote{margin:32px 0;padding:4px 0 4px 24px;border-left:3px solid var(--teal);font-size:23px;line-height:1.65;font-family:Georgia,"Songti SC",serif;color:var(--ink)}.pullquote p{margin:0}.aside{background:var(--teal-soft);border-left:3px solid #77a59a;padding:20px 24px;margin:27px 0;font-size:16px;line-height:1.8}.aside.warning{background:var(--amber-soft);border-color:#c08b65}.aside .kicker{font-size:11px;letter-spacing:1.4px;color:var(--teal);font-weight:700;display:block;margin-bottom:8px}.aside.warning .kicker{color:var(--amber)}.aside p:last-child{margin-bottom:0}
+.figure{margin:30px 0 34px;padding:24px;background:white;border:1px solid var(--line);border-radius:8px;break-inside:avoid}.fighead{display:flex;gap:16px;justify-content:space-between;align-items:baseline;margin-bottom:15px}.figlabel{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--teal);white-space:nowrap}.figtitle{font-size:17px;font-weight:700;color:var(--ink);line-height:1.5}.figure figcaption{font-size:13px;line-height:1.75;color:var(--muted);padding-top:17px;margin-top:10px;border-top:1px solid #e7ede9}.figure svg{width:100%;height:auto;display:block;overflow:visible}.arch-mobile{display:none!important}.architecture text{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;fill:var(--ink)}.architecture .box{fill:#f5f9f7;stroke:#93b9af;stroke-width:1.25}.architecture .dbbox{fill:#edf4f1;stroke:#1a7469;stroke-width:1.6}.architecture .bizbox{fill:#fcf2e9;stroke:#c39576;stroke-width:1.25}.architecture .wire{fill:none;stroke:#748e8a;stroke-width:1.5;marker-end:url(#arr)}.architecture .rule{stroke-dasharray:4 4}.architecture .title{font-size:18px;font-weight:700}.architecture .sub{font-size:14px;fill:#536d71}.architecture .wire-label{font-size:12px;fill:#61797a}.architecture .note{font-size:17px;fill:#965435}
+.table-wrap{overflow:auto;margin:25px 0;border-top:2px solid var(--teal);border-bottom:1px solid var(--line)}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}th{text-align:left;background:#edf3ef;font-weight:650;color:var(--ink);padding:13px 14px;vertical-align:top}td{padding:13px 14px;border-top:1px solid #e1e8e4;vertical-align:top}td:first-child{color:var(--ink);font-weight:600}td code{font-size:12px;white-space:normal}caption{text-align:left;font-size:13px;color:var(--muted);padding:10px 0}.small{font-size:14px;color:var(--muted);line-height:1.8}
+.glossary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:26px 0}.glossary div{background:var(--paper);padding:16px 18px}.glossary dt{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--teal)}.glossary dd{margin:5px 0 0;font-size:15px;line-height:1.7}
+.sequence{list-style:none;margin:0;padding:0;counter-reset:step}.sequence li{position:relative;display:grid;grid-template-columns:104px minmax(0,1fr) 104px;gap:14px;align-items:center;padding:15px 0;margin:0;min-height:88px;border-bottom:1px solid #e7ede9}.sequence li:last-child{border:0}.actor{font-size:14px;line-height:1.5;font-weight:650;text-align:center;color:var(--ink);padding:11px 7px;background:#eef5f1;border-radius:4px}.actor.business{background:#fcf0e5;color:#874727}.message{font-size:14px;line-height:1.65;text-align:center;min-width:0;color:#425f63}.message::after{content:"";height:1px;background:#6c938b;display:block;margin-top:8px;width:100%}.message::before{content:"";position:absolute;right:118px;top:calc(50% + 17px);border-left:6px solid #6c938b;border-top:4px solid transparent;border-bottom:4px solid transparent}.message small{display:block;color:var(--muted);font-size:12px}.sequence .lost .message{color:var(--amber)}.sequence .lost .message::after{height:0;background:none;border-top:1.5px dashed #b97c54}.sequence .lost .message::before{content:"×";border:none;color:var(--amber);font-size:24px;top:calc(50% + 1px);right:114px}.phase-note{font-size:14px;line-height:1.75;padding:17px 20px;background:var(--amber-soft);color:#805133;margin-top:17px;border-radius:4px}.phase-note.ok{background:var(--teal-soft);color:#245f55}.phase-note strong{color:inherit}
+.stock-path{display:flex;align-items:center;justify-content:space-evenly;gap:10px;padding:24px 0 10px}.stock-point{text-align:center;color:var(--ink)}.stock-point b{display:block;font:600 42px/1.1 Georgia,serif}.stock-point small{font-size:12px;color:var(--muted)}.stock-arrow{font-size:13px;color:var(--teal);text-align:center;line-height:1.6}.stock-arrow span{display:block;font-size:24px}.contract-split{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:26px 0}.contract-split article{border-top:3px solid var(--teal);padding:18px 18px 16px;background:#eef4f0}.contract-split article:last-child{border-color:#9b643e;background:#f8f0e8}.contract-split h4{margin:0 0 7px;font-size:16px;color:var(--ink)}.contract-split p{margin:0;font-size:15px;line-height:1.8}.contract-split .scope{font:12px/1.5 var(--mono);color:#667d7c;margin-bottom:12px}
+details{margin:22px 0;border:1px solid var(--line);border-radius:5px;background:#fff}summary{padding:15px 20px;cursor:pointer;font-size:15px;font-weight:600;color:var(--ink)}details .detail-body{padding:5px 20px 20px;font-size:15px;line-height:1.85}details .detail-body p:last-child{margin-bottom:0}.source{font-size:12px;line-height:1.75;color:var(--muted);margin-top:10px}.endnote{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}.endnote a{margin-right:12px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-width:1000px){.shell{display:block;max-width:860px;padding:34px 30px}.rail{position:static;margin-bottom:40px}.rail-brand{padding-bottom:12px}.rail-label,.rail-foot{display:none}.rail nav{display:flex;gap:6px 18px;flex-wrap:wrap;padding-top:14px}.rail a{font-size:12px;margin:0}.rail .num{margin-right:5px}.hero h1{font-size:47px}}
+@media(max-width:600px){body{font-size:17px;line-height:1.9}.shell{padding:24px 19px 46px}.rail{margin-bottom:30px}.rail nav{gap:9px 16px}.rail a{font-size:11px}.hero h1{font-size:36px;letter-spacing:-.8px}.deck{font-size:18px}.meta{font-size:11px;gap:6px 13px}.abstract{font-size:16px}section{margin-top:48px}h2{font-size:27px}h3{font-size:20px}.pullquote{font-size:21px;padding-left:17px}.aside{padding:17px 18px;font-size:15px}.figure{padding:17px 12px;margin:25px -3px}.fighead{gap:10px}.figtitle{font-size:15px}.figlabel{font-size:10px}.arch-desktop{display:none!important}.arch-mobile{display:block!important}.glossary{grid-template-columns:1fr}.contract-split{grid-template-columns:1fr;gap:14px}.sequence li{grid-template-columns:72px minmax(0,1fr) 72px;gap:8px;padding:14px 0;min-height:100px}.actor{font-size:12px;padding:9px 3px}.message{font-size:12px;line-height:1.65}.message small{font-size:11px}.message::before{right:80px}.sequence .lost .message::before{right:76px}.phase-note{font-size:13px;padding:14px}.stock-point b{font-size:35px}.stock-arrow{font-size:11px}.stock-point small{font-size:11px}th,td{padding:10px 9px}table{font-size:12px;min-width:510px}.compact-table table{min-width:0}pre{font-size:11px;padding:17px}.figure figcaption{font-size:12px}}
+.architecture .wire-label{font-size:14px}.architecture .arch-mobile .sub{font-size:16px}
+@media(max-width:800px){.arch-desktop{display:none!important}.arch-mobile{display:block!important;max-width:440px;margin:auto}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:white;font-size:11pt;line-height:1.7}.shell{display:block;max-width:none;padding:0}.rail{display:none}.hero h1{font-size:30pt}.deck{font-size:15pt}.meta{font-size:9pt}section{margin-top:28pt}h2{font-size:21pt}h3{font-size:14pt}.figure{padding:12pt;break-inside:avoid}.arch-desktop{display:block!important}.arch-mobile{display:none!important}.table-wrap{overflow:visible}table{min-width:0!important;font-size:9pt}.contract-split{grid-template-columns:1fr 1fr}details{break-inside:avoid}details .detail-body{display:block!important}summary{display:none}pre{white-space:pre-wrap;background:#eef4f0;color:#19343b}.prose{max-width:none}.endnote{font-size:9pt}.pullquote{font-size:16pt}a{color:inherit}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="rail" aria-label="文章目录">
+<div class="rail-brand">DURABLE<br>TOOL RUNTIME</div>
+<div class="rail-label">IN THIS ARTICLE</div>
+<nav>
+<a href="#why"><span class="num">01</span>为什么需要它</a>
+<a href="#architecture"><span class="num">02</span>架构与对象</a>
+<a href="#contract"><span class="num">03</span>两种执行资格</a>
+<a href="#case"><span class="num">04</span>走过一次断点</a>
+<a href="#evidence"><span class="num">05</span>证据与实验</a>
+<a href="#next"><span class="num">06</span>边界与下一步</a>
+</nav>
+<div class="rail-foot">ENGINEERING NOTES<br>2026.09.11 · 阅读版 v2<br>HTML / 离线可读</div>
+</aside>
+<main>
+<header class="hero prose">
+<p class="eyebrow">AGENT ENGINEERING / 从设计到验证</p>
+<h1>让 Agent 的工具调用<br>真正可恢复</h1>
+<p class="deck">Durable Tool Runtime：把业务意图、执行责任与副作用证据，放进同一套可检验的契约。</p>
+<div class="meta"><span>人机共创 · 设计与实验记录</span><span>2026 年 9 月 11 日</span><span>内容基线 1729c0e · MIT</span></div>
+<p class="abstract">一个 Agent 重启，重新加载对话，又开始调用工具。这能说明任务已经恢复了吗？我们用一个可运行的框架雏形，把这个问题拆开验证：<strong>进程可以重新启动，业务责任却不能重新算起。</strong></p>
+</header>
+
+<section id="why">
+<div class="prose"><span class="section-no">01 / THE PROBLEM</span><h2>缺的不是一句“继续执行”</h2>
+<p>当工具只是计算或检索，恢复上下文通常有助于继续工作。但当工具会预留库存、创建资源、上传文件或发送消息时，事情多了一层：Agent 说自己做过，不等于外部业务已经发生；没有收到结果，也不等于副作用没有生效。</p>
+<p>设想一次库存预留。业务服务已经扣减库存，响应却在返回途中丢失。调用方看到超时，业务方已经成功。重新执行整项任务，可能制造第二笔预留；直接宣布完成，又缺少调用方已经取得的证据。</p>
+<p>而且，中断可能发生在不同地方：Agent 退出时 worker 仍在执行；worker 退出时下游已经提交；完成结果已经落盘时，调度器还没来得及消费。<strong>这些状态不能都被压成“任务失败”，再交给整体重跑。</strong></p>
+<blockquote class="pullquote"><p>我们真正想接续的，<br>是原业务身份与已经承担的责任。</p></blockquote>
+<p>这就是 <strong>Durable Tool Runtime</strong> 的出发点：通过 MCP 接入 Agent，将有副作用的工具调用建模为持久化业务操作，并为授权、执行、对账、补偿提供统一的约束路径。</p>
+<p>这里并不是说 MCP 没有相关描述。它已有只读、破坏性、幂等性等工具提示，以及任务增强执行能力。但这些声明不会自动让业务变更、幂等记录和回执一起提交。我们要补的是<strong>由谁实现、在哪里检查、失败后怎么办</strong>的执行契约。</p>
+<p class="source">协议边界：<a href="https://modelcontextprotocol.io/specification/2025-11-25/schema#toolannotations">MCP 工具注解与执行属性</a>。本文是本地 POC 的设计实践，不提供任意外部接口的 exactly-once 保证。</p>
+</div>
+</section>
+
+<section id="architecture">
+<div class="prose"><span class="section-no">02 / THE ARCHITECTURE</span><h2>把工具调用，升级为业务操作</h2>
+<p>我们把相对稳定的部分留在业务治理核心：批准内容、授权范围、操作状态和证据规则。将任务注入、工具接入、运行监督等差异留给 runtime 接线。</p>
+<p>业务方定义“什么叫正确”，框架把这些规则落实到执行路径。<strong>业务工具定义者不应为了更换 Agent runtime，重新定义同一套业务语义。</strong></p></div>
+
+<figure class="figure architecture" aria-labelledby="arch-heading">
+<div class="fighead"><span class="figlabel">FIG. 01</span><span class="figtitle" id="arch-heading">运行控制、持久执行与业务提交</span></div>
+<svg class="arch-desktop" viewBox="0 0 840 570" role="img" aria-label="控制器批准任务，调度器监督Agent。Agent通过MCP访问Core和治理账本；Worker认领操作，通过业务适配器对账或执行。业务账本独立提交库存与回执。">
+<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0 0L8 4L0 8Z" fill="#748e8a"/></marker></defs>
+<path class="wire" d="M232 76H285"/><text class="wire-label" x="242" y="60">授权</text>
+<path class="wire" d="M588 76H515"/><text class="wire-label" x="528" y="60">监督</text>
+<path class="wire" d="M400 118V176" marker-start="url(#arr)"/><text class="wire-label" x="410" y="153">MCP</text>
+<path class="wire rule" d="M232 218H285"/>
+<path class="wire rule" d="M127 260V278H693V300"/><text class="wire-label" x="155" y="271">业务证据规则</text>
+<path class="wire" d="M400 260V300" marker-start="url(#arr)"/>
+<path class="wire" d="M588 344H515" marker-start="url(#arr)"/><text class="wire-label" x="524" y="331">认领 / 结果</text>
+<path class="wire" d="M798 76H817V273H536V344H515" marker-start="url(#arr)"/><text class="wire-label" x="606" y="260">Run 与恢复记录</text>
+<path class="wire" d="M693 388V442"/><text class="wire-label" x="704" y="420">HTTP / 对账</text>
+<path class="wire" d="M588 490H515" marker-start="url(#arr)"/><text class="wire-label" x="524" y="477">业务事务</text>
+
+<rect class="box" x="22" y="34" width="210" height="84" rx="7"/><text class="title" x="127" y="69" text-anchor="middle">可信控制器</text><text class="sub" x="127" y="95" text-anchor="middle">批准意图 · 签发 Grant</text>
+<rect class="box" x="285" y="34" width="230" height="84" rx="7"/><text class="title" x="400" y="69" text-anchor="middle">Agent 与 runtime 接线</text><text class="sub" x="400" y="95" text-anchor="middle">任务输入 · 工具 · 运行证据</text>
+<rect class="box" x="588" y="34" width="210" height="84" rx="7"/><text class="title" x="693" y="69" text-anchor="middle">Scheduler + Runner</text><text class="sub" x="693" y="95" text-anchor="middle">认领 · 监督 · 冷启动</text>
+<rect class="box" x="22" y="176" width="210" height="84" rx="7"/><text class="title" x="127" y="211" text-anchor="middle">Catalog</text><text class="sub" x="127" y="237" text-anchor="middle">工具定义与业务规则</text>
+<rect class="box" x="285" y="176" width="230" height="84" rx="7"/><text class="title" x="400" y="211" text-anchor="middle">MCP Gateway + Core</text><text class="sub" x="400" y="237" text-anchor="middle">鉴权 · 幂等受理 · 查询 · 取消</text>
+<rect class="dbbox" x="285" y="300" width="230" height="88" rx="7"/><text class="title" x="400" y="329" text-anchor="middle">治理账本</text><text class="sub" x="400" y="354" text-anchor="middle">Task · Run · Grant</text><text class="sub" x="400" y="374" text-anchor="middle">Operation · Event · Outbox</text>
+<rect class="box" x="588" y="300" width="210" height="88" rx="7"/><text class="title" x="693" y="337" text-anchor="middle">Worker</text><text class="sub" x="693" y="364" text-anchor="middle">认领 · 执行 · 对账 · 补偿</text>
+<rect class="bizbox" x="588" y="442" width="210" height="96" rx="7"/><text class="title" x="693" y="478" text-anchor="middle">业务适配与库存服务</text><text class="sub" x="693" y="505" text-anchor="middle">能力 · 业务身份 · 回执</text>
+<rect class="bizbox" x="285" y="442" width="230" height="96" rx="7"/><text class="title" x="400" y="478" text-anchor="middle">业务账本</text><text class="sub" x="400" y="505" text-anchor="middle">库存 · 幂等记录 · 回执</text>
+<text class="note" x="26" y="362">两个账本，独立提交。</text><text class="sub" x="26" y="391">治理层的受理事务</text><text class="sub" x="26" y="414">不能包住远端业务提交。</text><text class="sub" x="26" y="449">恢复机制要跨过这道间隙。</text>
+</svg>
+<svg class="arch-mobile" viewBox="0 0 380 800" role="img" aria-label="窄屏架构图：控制器和调度器管理Agent，Agent通过MCP与治理核心交互，Worker从治理账本认领操作，业务服务独立提交。">
+<defs><marker id="marr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0 0L8 4L0 8Z" fill="#748e8a"/></marker></defs>
+<g fill="none" stroke="#748e8a" stroke-width="1.5" marker-end="url(#marr)">
+<path d="M97 94L150 132"/><path d="M283 94L230 132"/><path d="M190 216V270" marker-start="url(#marr)"/><path d="M190 350V398" marker-start="url(#marr)"/><path d="M190 486V548" marker-start="url(#marr)"/><path d="M190 626V686"/><path d="M368 54H376V442H352" marker-start="url(#marr)"/>
+</g>
+<rect class="box" x="12" y="16" width="170" height="78" rx="6"/><text x="97" y="47" text-anchor="middle" style="font-size:17px;font-weight:700">可信控制器</text><text class="sub" x="97" y="73" text-anchor="middle">批准意图 / 发 Grant</text>
+<rect class="box" x="198" y="16" width="170" height="78" rx="6"/><text x="283" y="47" text-anchor="middle" style="font-size:16px;font-weight:700">Scheduler / Runner</text><text class="sub" x="283" y="73" text-anchor="middle">监督 · 持久化恢复</text>
+<rect class="box" x="85" y="132" width="210" height="84" rx="6"/><text class="title" x="190" y="166" text-anchor="middle">Agent / runtime</text><text class="sub" x="190" y="193" text-anchor="middle">任务 · 工具 · 证据</text>
+<text class="sub" x="204" y="248">MCP</text>
+<rect class="box" x="28" y="270" width="324" height="80" rx="6"/><text class="title" x="190" y="303" text-anchor="middle">Gateway + Core</text><text class="sub" x="190" y="329" text-anchor="middle">Catalog 规则：鉴权 / 受理 / 查询 / 取消</text>
+<text class="sub" x="204" y="382">持久受理 / 查询</text>
+<rect class="dbbox" x="28" y="398" width="324" height="88" rx="6"/><text class="title" x="190" y="429" text-anchor="middle">治理账本</text><text class="sub" x="190" y="454" text-anchor="middle">Task / Run / Grant</text><text class="sub" x="190" y="475" text-anchor="middle">Operation / Event / Outbox</text>
+<text class="sub" x="204" y="526">认领 / 结果</text>
+<rect class="box" x="28" y="548" width="324" height="78" rx="6"/><text class="title" x="190" y="580" text-anchor="middle">Worker</text><text class="sub" x="190" y="607" text-anchor="middle">按业务规则执行、对账与补偿</text>
+<text class="sub" x="204" y="666">HTTP / 对账</text>
+<rect class="bizbox" x="28" y="686" width="324" height="94" rx="6"/><text class="title" x="190" y="716" text-anchor="middle">业务适配 + 库存服务</text><text class="sub" x="190" y="741" text-anchor="middle">独立业务账本</text><text class="sub" x="190" y="765" text-anchor="middle">库存 / 幂等记录 / 回执</text>
+</svg>
+<figcaption>逻辑职责视图，并非进程部署图。虚线表示规则依赖；窄屏合并展示部分节点。Catalog 当前是静态注册，runtime 接线当前针对 Codex。</figcaption>
+</figure>
+
+<div class="prose">
+<h3>最先分清的，是几个不同的“状态”</h3>
+<p>Task 是目标，Run 是一次 Agent 运行，Grant 是当前允许做什么，Operation 则是平台已经接下的具体工作。它们可以放在同一个数据库里，却不能共享一个笼统的成功或失败标记。</p>
+<dl class="glossary">
+<div><dt>Task / Intent</dt><dd>目标与获准业务动作。恢复时保留身份，不随进程重启制造新意图。</dd></div>
+<div><dt>Run</dt><dd>一次 Agent 运行。丢失后可以建立后继 Run，并保留与前序的关系。</dd></div>
+<div><dt>Grant</dt><dd>当前命令权限。包含明确意图集合和动作范围，不能从旧上下文恢复权限。</dd></div>
+<div><dt>Operation</dt><dd>已持久受理的工作。调用者退出后，它仍须被处理或明确说明阻塞。</dd></div>
+</dl>
+<h3>工具定义必须被执行路径消费</h3>
+<p>库存工具的定义不仅包含输入 schema，还声明异步持久执行、已批准意图授权、下游原子提交要求，以及“对账或阻塞”的未知结果策略。</p>
+<p><code>implementationRef</code> 由可信 Catalog 查找已注册实现，绑定参数校验、业务键生成和证据判定。Core 在受理时消费授权规则；worker 在执行和恢复时消费结果规则。定义与实现不匹配时停止推进，不拿新逻辑盲目解释旧操作。</p>
+<p>这不是“写上幂等就拥有幂等”。同一身份如何生成、参数变化如何拒绝、业务效果与回执怎样一起提交，仍需具体实现与测试。当前是一个库存适配器和静态注册表，不是任意工具上传后就自动获得保障的平台。</p>
+<h3>责任从“持久受理”开始</h3>
+<p>请求到达 Core 后，先检查 Grant、当前命令资格、意图集合、批准参数和实现版本。首次受理时，Operation、初始事件与待投递记录在同一个本地事务里提交；同一获准意图的重复请求则返回原 Operation。</p>
+<div class="aside"><span class="kicker">关键边界 / DURABLE ACCEPTANCE</span><p><strong>发出命令，不等于平台接下责任。持久受理之后，责任才成立。</strong></p><p><code>ACCEPTED</code> 只说明工作已经被接下，不代表业务已成功，也不承诺在任意故障下最终一定成功。</p></div>
+<p>受理响应如果丢失，调用者可以按原意图查询或幂等重提。但它不应因为换了一个 session，就把原工作重新定义成另一笔业务。</p>
+<p class="source">实现与契约：<a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/docs/contracts.md">项目契约</a> · <a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/src/catalog.ts">Catalog</a> · <a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/src/core.ts">Core</a></p>
+</div>
+</section>
+
+<section id="contract">
+<div class="prose"><span class="section-no">03 / TWO LIFECYCLES</span><h2>授权可以到期，责任不能一起消失</h2>
+<p>Agent 崩溃时，worker 可能还在执行；worker 崩溃时，Agent 的权限可能仍然有效。更换其中一个，不应迫使另一个也从头开始。</p>
+<p>这个判断不仅用于处理故障。<strong>调用者失去发起新命令的资格，并不自动撤销平台已经受理的工作。</strong> 撤销业务目标需要明确的取消流程，而不是由断连或凭据过期隐式推断。</p>
+<div class="contract-split">
+<article><p class="scope">task_epoch + Grant</p><h4>谁还能发起新命令？</h4><p>约束 Agent 的当前命令资格。换代拒绝旧命令，但不抹去已受理操作。</p></article>
+<article><p class="scope">executor_epoch + 租约</p><h4>谁还能提交执行结果？</h4><p>约束某个 Operation 的 worker。新执行者接管后，旧结果不能覆盖权威状态。</p></article>
+</div>
+<p>租约只说明当前授予谁资格，不证明旧进程已经停止。旧进程可能从长暂停中恢复，旧请求也可能已经在途中。因此，治理账本的 epoch 检查不是所有远端资源通用的 fencing token；副作用安全仍取决于下游幂等、条件写或等价约束。</p>
+<h3>恢复业务，不一定要恢复原会话</h3>
+<p>新 runtime 未必读得懂旧 session，但仍可以通过新的 Run，围绕原意图与 Operation 接续。反过来，原 session 能打开，也不代表业务结果已经对账。</p>
+<p>我们希望 runtime 差异集中在接线层。不过当前 runner 仍直接创建 <code>CodexRun</code>，绑定中也有 <code>codexBinary</code>。<strong>面向多 runtime 的分离是设计方向，第二种 runtime 的等价验收尚未完成。</strong></p>
+<h3>调度器自身也要能重启</h3>
+<p>如果旧 Run 的引用只存在于调度器内存里，恢复链路仍会断。我们把 Run、当前任务关联和前序关系持久化，由独立 runner 监督 Agent 并记录结果。替代调度器重新发现工作：已有完成证据就消费它，确需接续才创建后继 Run。</p>
+<p>当前依赖同机 PID、启动身份、进程组和 SQLite。跨机调度需要重新验证网络分区、时钟、持久存储与远端控制，不能把“方法论可复用”写成“实现已经可直接搬过去”。</p>
+<p class="source">运行恢复：<a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/docs/architecture.md">架构说明</a> · <a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/src/runner.ts">当前 runtime 耦合</a></p>
+</div>
+</section>
+
+<section id="case">
+<div class="prose"><span class="section-no">04 / THROUGH THE FAILURE WINDOW</span><h2>走过一次真实断点</h2>
+<p>用一笔库存预留串起这套设计：初始库存 10，批准预留 3；下游提交后杀掉 worker；恢复原操作，再执行取消。原预留记为 <strong>O1</strong>，补偿记为 <strong>O2</strong>，业务回执记为 <strong>R1</strong>。</p>
+<div class="aside"><span class="kicker">先说明证据范围</span><p>下面主线来自 <code>npm run demo</code>：真实 MCP、HTTP、SQLite 与子进程，调用端是确定性程序，<strong>没有运行模型</strong>。原生 runtime 与前序真实模型实验单独列在后文，不拼接成一条虚构经历。</p></div></div>
+
+<figure class="figure" aria-labelledby="seq-a">
+<div class="fighead"><span class="figlabel">FIG. 02A</span><span class="figtitle" id="seq-a">受理与中断：两边看到的事实开始分离</span></div>
+<ol class="sequence" aria-label="时间从上向下：持久受理，下游提交，响应被阻断">
+<li><span class="actor">两个 MCP<br>调用端</span><span class="message">经不同网关提交同一意图<small>同一获准身份与参数</small></span><span class="actor">Gateway<br>Core</span></li>
+<li><span class="actor">Core</span><span class="message">事务内鉴权与幂等受理<small>只创建一个 O1；两次返回同一 ID</small></span><span class="actor">治理账本<br>ACCEPTED</span></li>
+<li><span class="actor">Worker A</span><span class="message">认领 O1 并记录派发<small>executor epoch = 1</small></span><span class="actor">治理账本</span></li>
+<li><span class="actor">Worker A</span><span class="message">调用 reserve<small>原业务意图 I1</small></span><span class="actor business">库存服务</span></li>
+<li><span class="actor business">库存服务</span><span class="message">原子提交：10 → 7<small>预留记录与回执 R1 一起落下</small></span><span class="actor business">业务账本<br>RESERVED</span></li>
+<li class="lost"><span class="actor business">库存服务</span><span class="message">成功响应被阻断<small>没有到达执行者</small></span><span class="actor">Worker A</span></li>
+</ol>
+<div class="phase-note"><strong>故障注入：</strong>在此时 SIGKILL Worker A。业务已预留；治理账本仍是 DISPATCH_RECORDED，结果缺失。这不是“业务未执行”的证据。</div>
+<figcaption>消息按时间从上到下排列。图只合并底层步骤，不把调用发出、业务提交、结果收到画成同一时刻。</figcaption>
+</figure>
+
+<div class="prose"><p>这个窗口是案例的核心。实验控制器能直接检查库存，知道可用量已经变成 7；但恢复 worker 不能偷用裁判视角，必须通过它获准使用的接口取得业务证据。</p></div>
+
+<figure class="figure" aria-labelledby="seq-b">
+<div class="fighead"><span class="figlabel">FIG. 02B</span><span class="figtitle" id="seq-b">接管与取消：先确认原事实，再执行新目标</span></div>
+<ol class="sequence" aria-label="时间从上向下：Worker B接管并对账，之后执行独立补偿">
+<li><span class="actor">Worker B</span><span class="message">租约到期后认领原 O1<small>executor epoch = 2</small></span><span class="actor">治理账本</span></li>
+<li><span class="actor">Worker B</span><span class="message">inspect(I1)<small>先查已有业务效果</small></span><span class="actor business">库存服务</span></li>
+<li><span class="actor business">库存服务</span><span class="message">返回 RESERVED 与 R1<small>核对身份、参数、版本</small></span><span class="actor">Worker B</span></li>
+<li><span class="actor">Worker B</span><span class="message">记录原结果：O1 → APPLIED<small>这一步只对账，不再扣库存</small></span><span class="actor">治理账本</span></li>
+<li><span class="actor">新授权<br>调用端</span><span class="message">找回 O1，随后请求取消<small>Core 记录 CANCEL，创建补偿 O2</small></span><span class="actor">Core 与<br>治理账本</span></li>
+<li><span class="actor">Worker</span><span class="message">认领 O2，执行释放<small>下游原子提交 7 → 10，返回 RELEASED</small></span><span class="actor business">库存服务</span></li>
+<li><span class="actor">Worker</span><span class="message">O2 → APPLIED<small>保留 O1 已执行的历史事实</small></span><span class="actor">治理账本</span></li>
+</ol>
+<div class="phase-note ok"><strong>结果：</strong>预留一次，释放一次。重复取消返回已有状态，不再次释放。调用权限换代时，旧命令被拒，新 Grant 仍可找回原 O1。</div>
+<div class="stock-path" aria-label="可用库存从10预留到7，再补偿回到10">
+<div class="stock-point"><b>10</b><small>初始可用</small></div><div class="stock-arrow">预留一次<span>→</span></div><div class="stock-point"><b>7</b><small>中断与对账后</small></div><div class="stock-arrow">释放一次<span>→</span></div><div class="stock-point"><b>10</b><small>补偿完成</small></div>
+</div>
+<figcaption>成功恢复的是原操作。本次没有“重试预留后靠幂等成功”，实际路径是查询下游、核对回执并补齐治理层结果。</figcaption>
+</figure>
+
+<div class="prose"><h3>库存回到原值，不等于什么都没发生</h3><p>最终 O1 仍为 APPLIED，表示预留发生过；O2 为 APPLIED，表示补偿完成；最新记录的业务观察是 RELEASED。三者并不矛盾，分别描述历史执行、补偿执行和业务状态。</p></div>
+<div class="table-wrap"><table><caption>同一笔预留的状态对照</caption><thead><tr><th scope="col">时点</th><th scope="col">治理层记录</th><th scope="col">业务记录</th><th scope="col">库存</th></tr></thead><tbody>
+<tr><td>并发受理后</td><td>一个 O1：ACCEPTED</td><td>无预留</td><td>10</td></tr>
+<tr><td>响应被阻断</td><td>DISPATCH_RECORDED；结果缺失</td><td>RESERVED；R1 版本 1</td><td>7</td></tr>
+<tr><td>B 对账完成</td><td>O1：APPLIED；记录原回执</td><td>RESERVED</td><td>7</td></tr>
+<tr><td>取消补偿完成</td><td>O1 保持 APPLIED；O2：APPLIED</td><td>RELEASED；回执版本 2</td><td>10</td></tr>
+<tr><td>再次取消</td><td>返回已有操作与补偿状态</td><td>不变</td><td>10</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>反例同样重要：取消先于迟到预留生效时，下游需要封闭意图，阻止它复活；库存已经被消费时，应拒绝释放，而不是伪造“取消成功”；缺乏查询或安全重试能力时，应停在未知并说明阻塞。这些是独立用例，不是同一订单后续连续发生的剧情。</p>
+<p class="source">可复现路径：<a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/scripts/demo.ts">默认演示源码</a> · <a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/docs/walkthrough.md">案例说明</a></p>
+</div>
+</section>
+
+<section id="evidence">
+<div class="prose"><span class="section-no">05 / EVIDENCE, NOT JUST A PASS</span><h2>记录留下之后，还要知道它能证明什么</h2>
+<p>工具日志能重建系统当时观察和记录到的轨迹，不一定覆盖完整现实：调用可能还没生效，业务也可能已经提交但回执未归档。日志中没有成功响应，不能单独证明没有执行。</p>
+<p>这并不意味着日志没有证据价值。可信业务回执，或与业务变更原子提交的权威记录，都能提供证据。区别不在于文件叫日志还是单据，而在于<strong>谁记录、记录什么、与业务提交有什么关系。</strong></p>
+<blockquote class="pullquote"><p>持久化，解决记录能否留下。<br>证据契约，解决记录能证明什么。<br>恢复策略，决定据此可以做什么。</p></blockquote>
+<p>本 POC 的 Checkpoint 是操作引用入口，不是进程快照。恢复仍要按当前 Grant 过滤并读取事实。更频繁地保存 Checkpoint，也不能单独消除“业务已提交、治理结果未记录”的间隙。</p>
+<p>“未知”因此必须约束行动。查询暂时没有记录，也未必意味着在途请求不会生效。不能对账、又不具备安全重试条件时，系统应明确停住。可靠性不仅体现在能继续，也体现在知道何时不应继续。</p>
+<h3>三种验证，不能混成一种证据</h3>
+</div>
+<div class="table-wrap compact-table"><table><thead><tr><th scope="col">验证层</th><th scope="col">实际内容</th><th scope="col">证明到的范围</th></tr></thead><tbody>
+<tr><td>核心与默认演示</td><td>真实服务、数据库、子进程；无模型</td><td>已覆盖的契约与故障窗口</td></tr>
+<tr><td>原生运行时＋模拟模型</td><td>真实 Codex 进程，模拟响应</td><td>指定环境的接线、进程恢复与证据通路</td></tr>
+<tr><td>前序真实模型实验</td><td>模型驱动调用与结果表达</td><td>对应版本、场景中的 Agent 表现</td></tr>
+</tbody></table></div>
+<div class="prose">
+<p>公开代码 1729c0e 的 Linux/macOS CI 各通过 50 项测试及默认演示。原生模拟测试在行为候选 e9dd1b0 上通过四个冷启动窗口，之后只调整文档与 usage-help；验证环境为 Node.js 24.16.0、Codex CLI 0.153.4 与 macOS。</p>
+<p>其中，独立的 after_commit 场景终止了 scheduler、runner 和 worker。替代调度器从持久状态建立后继 Run，最终仍只预留一次。它是另一场实验，不能与上文的无模型演示拼成同一次运行。</p>
+<p><strong>公开导出版本没有新跑真实 API-key 模型验收。</strong> 早先的真实模型记录属于研究版本，不能挪用为当前 SHA 的全新证明。</p>
+<details open><summary>前序真实模型实验：保留原始结果，不合并计算成功率</summary><div class="detail-body">
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>Episodes</th><th>请求尝试</th><th>观察</th></tr></thead><tbody>
+<tr><td>首轮矩阵</td><td>17</td><td>66</td><td>10 通过，7 未通过</td></tr>
+<tr><td>有界补验</td><td>6</td><td>30</td><td>6 通过；另有一条依据原证据纠正的裁判误判</td></tr>
+<tr><td>冷启动、串行与并发</td><td>27</td><td>120</td><td>23 通过；1 条传输失败，3 条预算截断</td></tr>
+<tr><td>固定四项补验</td><td>4</td><td>18</td><td>4 通过；取消请求数上限，保留其他边界</td></tr>
+<tr><td>合计</td><td>54</td><td>234</td><td>多版本、选择性补验，不是稳定成功率</td></tr>
+</tbody></table></div>
+<p>请求尝试不一定等于完整模型响应或计费单位。一次 episode 内接续原意图与数据库是恢复；新建目录重跑场景是补验，不是原任务恢复。并发实验使用独立业务存储，共享资源争用另有确定性测试；二者都不等于持续生产负载。</p>
+<p>私有原始轨迹未公开，历史汇总的独立可审计性因此弱于完整数据集。公开可复现部分是源码、测试和新运行生成的报告。</p>
+</div></details>
+<h3>几次失败，反而把框架讲清楚了</h3>
+<p><strong>授权范围曾经太宽。</strong> 早期 Grant 只绑定 task 与动作 scope，旧 token 能执行同一 task 后来新增的意图。新的反例揭示了旧测试没有覆盖的问题，随后加入不可变意图集合，并统一约束提交、读取、取消和 Checkpoint。</p>
+<p><strong>裁判也会误判。</strong> 一条实际收到的授权拒绝，因为原生工具事件标记 failed 而被丢弃。正确修复是让裁判识别拒绝证据，而不是要求模型继续尝试直到看起来成功。另一次最终快照早于 worker 收尾，修正后才使报告对应执行停止后的事实。</p>
+<p><strong>导出后的接线必须重新验证。</strong> 公开版先后暴露了模拟夹具丢失工具命名空间、误解析计时包装的问题。第二轮业务只预留一次，协议却仍未完成。两处都增加具体回归并复验原生路径，而不是拿私有版本曾经通过当作替代。</p>
+<p>还有一条历史传输错误在定向补验里没有复现，其原始根因仍然未知。补验成功不是根因证明。</p>
+<p class="source">证据入口：<a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/docs/experiments.md">实验记录与限制</a> · <a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/docs/publication.md">公开版本验证</a> · <a href="https://github.com/funkdog/durable-tool-runtime/actions/runs/34573115628">对应 CI</a></p>
+</div>
+</section>
+
+<section id="next">
+<div class="prose"><span class="section-no">06 / A BASELINE TO BUILD ON</span><h2>把边界说明白，才有下一步</h2>
+<p>日志与恢复并不是新问题。Apache Maka 的文档强调 append-only RuntimeEvent、上下文与界面的日志投影，以及统一 Runtime Host 的执行权威。它是相关的设计思路；本文不做同条件横向评测，也不据此宣称我们的方案更强。</p>
+<p>我们的切入点更具体：围绕有副作用的业务工具，把批准意图、命令授权、持久受理责任、业务证据和补偿规则组织成可验证路径。现在得到的是可运行的模块与不变量，而非成熟的通用平台。</p>
+<p>接下来的方向很明确：提取通用 runtime 接口并验收第二种接线；完善工具定义的版本与能力协商；接入真实弱能力下游；再对跨机和持续并发进行独立验证。<strong>这些是迭代方向，不是当前完成清单。</strong></p>
+<div class="aside warning"><span class="kicker">部署边界</span><p>当前假设主机、数据库、Controller 和实现注册表可信。不覆盖恶意同用户进程、数据库管理员篡改、公网服务加固或数据库整体丢失。不要把本地示例直接暴露为生产服务。</p></div>
+<h3>从一个可复现的案例开始</h3>
+<p>默认演示需要 Git、Node.js ≥24.16.0、内置 SQLite ≥3.51.3。进程控制以 POSIX 为目标，不支持 Windows；不需要模型账号或 Codex。</p>
+<pre><code>git clone --branch baseline/v0.1 \
+  https://github.com/funkdog/durable-tool-runtime.git
+cd durable-tool-runtime
+git checkout 1729c0e4b1835e72422fe675d1d9af96330817be
+npm ci --ignore-scripts --include=dev
+npm run check
+npm run demo</code></pre>
+<p>原生模拟测试、真实 API 验收是另外两条入口。后者必须显式启用，并提供专用 API key、模型和预算。实验生成的凭据、数据库和轨迹不应提交到仓库。</p>
+<p class="source"><a href="https://github.com/funkdog/durable-tool-runtime/tree/baseline/v0.1">项目与 MIT 基线</a> · <a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/docs/agent-integration.md">Agent 接入</a> · <a href="https://github.com/funkdog/durable-tool-runtime/blob/1729c0e4b1835e72422fe675d1d9af96330817be/SECURITY.md">安全假设</a> · <a href="https://github.com/apache/maka/blob/main/README.md">Maka 项目说明</a></p>
+<blockquote class="pullquote"><p>调用可以中断，执行者可以更换。<br>必须接续的，是业务身份、平台责任，<br>以及有依据的下一步行动。</p></blockquote>
+<p>这是这份框架基线最想交付的东西：不只是几组配置和类名，而是一种设计方法——先说清状态和证据的含义，再让模块、协议和故障实验共同守住这些含义。</p>
+</div>
+</section>
+<footer class="endnote prose"><p><strong>关于这一版</strong><br>基于共同讨论与已有实现整理。内容锚定公开代码 1729c0e；不声称第二种 runtime 已验证，不把选择性补验算作稳定成功率。阅读版 v2 对正文、层级与图示重新编辑，技术边界保持不变。</p><p>图表为内嵌矢量与 HTML 排版，无外部脚本、字体或图片依赖。可以离线阅读，浏览器打印亦可保留正文与图示。</p></footer>
+</main>
+</div>
+</body>
+</html>
